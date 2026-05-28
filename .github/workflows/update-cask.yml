@@ -1,0 +1,41 @@
+name: Update Cask
+
+on:
+  repository_dispatch:
+    types: [nexum-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without v prefix (e.g. 1.5.2)"
+        required: true
+      sha256:
+        description: "SHA256 of Nexum_{version}_universal.dmg"
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: vars
+        run: |
+          echo "version=${{ github.event.inputs.version || github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+          echo "sha256=${{ github.event.inputs.sha256 || github.event.client_payload.sha256 }}" >> $GITHUB_OUTPUT
+
+      - name: Update Casks/nexum.rb
+        run: |
+          sed -i "s/version \".*\"/version \"${{ steps.vars.outputs.version }}\"/" Casks/nexum.rb
+          sed -i "s/sha256 \".*\"/sha256 \"${{ steps.vars.outputs.sha256 }}\"/" Casks/nexum.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/nexum.rb
+          git commit -m "chore: bump Nexum to v${{ steps.vars.outputs.version }}"
+          git push
