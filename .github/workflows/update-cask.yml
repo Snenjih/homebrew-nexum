@@ -6,10 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version without v prefix (e.g. 1.5.2)"
+        description: "Version without v prefix (e.g. 1.6.0)"
         required: true
-      sha256:
-        description: "SHA256 of Nexum_{version}_universal.dmg"
+      sha256_aarch64:
+        description: "SHA256 of Nexum_{version}_aarch64.dmg"
+        required: true
+      sha256_x86_64:
+        description: "SHA256 of Nexum_{version}_x64.dmg"
         required: true
 
 jobs:
@@ -25,12 +28,43 @@ jobs:
         id: vars
         run: |
           echo "version=${{ github.event.inputs.version || github.event.client_payload.version }}" >> $GITHUB_OUTPUT
-          echo "sha256=${{ github.event.inputs.sha256 || github.event.client_payload.sha256 }}" >> $GITHUB_OUTPUT
+          echo "sha256_aarch64=${{ github.event.inputs.sha256_aarch64 || github.event.client_payload.sha256_aarch64 }}" >> $GITHUB_OUTPUT
+          echo "sha256_x86_64=${{ github.event.inputs.sha256_x86_64 || github.event.client_payload.sha256_x86_64 }}" >> $GITHUB_OUTPUT
 
       - name: Update Casks/nexum.rb
         run: |
-          sed -i "s/version \".*\"/version \"${{ steps.vars.outputs.version }}\"/" Casks/nexum.rb
-          sed -i "s/sha256 \".*\"/sha256 \"${{ steps.vars.outputs.sha256 }}\"/" Casks/nexum.rb
+          python3 - <<'EOF'
+          import re, os
+
+          version     = os.environ["VERSION"]
+          sha_arm     = os.environ["SHA256_AARCH64"]
+          sha_intel   = os.environ["SHA256_X86_64"]
+
+          content = open("Casks/nexum.rb").read()
+
+          # bump version
+          content = re.sub(r'version "[^"]*"', f'version "{version}"', content)
+
+          # replace sha256 inside on_arm block
+          content = re.sub(
+              r'(on_arm do.*?sha256 ")[a-f0-9]+(")',
+              rf'\g<1>{sha_arm}\g<2>',
+              content, flags=re.DOTALL
+          )
+
+          # replace sha256 inside on_intel block
+          content = re.sub(
+              r'(on_intel do.*?sha256 ")[a-f0-9]+(")',
+              rf'\g<1>{sha_intel}\g<2>',
+              content, flags=re.DOTALL
+          )
+
+          open("Casks/nexum.rb", "w").write(content)
+          EOF
+        env:
+          VERSION: ${{ steps.vars.outputs.version }}
+          SHA256_AARCH64: ${{ steps.vars.outputs.sha256_aarch64 }}
+          SHA256_X86_64: ${{ steps.vars.outputs.sha256_x86_64 }}
 
       - name: Commit and push
         run: |
