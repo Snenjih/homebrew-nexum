@@ -1,14 +1,14 @@
 cask "nexum" do
-  version "1.8.1"
+  version "1.8.9"
 
   on_arm do
     url "https://github.com/Snenjih/nexum/releases/download/v#{version}/Nexum_#{version}_aarch64.dmg"
-    sha256 "118246f1d3369b84448857b93f9b1bacfdcc800e4180337d74e8fb0c41bae182"
+    sha256 "f1b23c79d9e6b195a2046dbe7e016e42cba80a53c0ffa756a72f89579be5e6c4"
   end
 
   on_intel do
     url "https://github.com/Snenjih/nexum/releases/download/v#{version}/Nexum_#{version}_x64.dmg"
-    sha256 "4fcc7fcf771880aebabfca00d86280e7cf60a43bbab90fb561f98ac9f5d68505"
+    sha256 "f3b72116e98b063bd3ba029561dda14da1ceda50c100b695344b6cf3c223adb0"
   end
 
   name "Nexum"
